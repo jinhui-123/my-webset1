@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>迷雾终局 - 控烟互动H5</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; overflow: hidden; font-family: "Microsoft YaHei", sans-serif; background: #000; color: #fff; }
+
+        /* 全局雨滴背景效果 */
+        .rain-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            background: rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .drop {
+            position: absolute;
+            background: linear-gradient(transparent, rgba(255,255,255,0.3));
+            width: 1px;
+            height: 50px;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(100vh); }
+        }
+
+        .container {
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        .page {
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 20px;
+            overflow: hidden;
+        }
+
+        /* 玻璃液态视觉效果 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            z-index: 2;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+        }
+
+        h2 { font-size: 1.8rem; margin-bottom: 20px; letter-spacing: 3px; color: #efefef; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        p { font-size: 0.95rem; line-height: 1.8; color: #bbb; }
+
+        /* 第一页：水雾Canvas */
+        #canvas-fog {
+            position: absolute;
+            top: 0; left: 0; z-index: 5;
+            touch-action: none;
+        }
+
+        /* 电子烟管元素 */
+        .vape-device {
+            width: 40px; height: 180px;
+            background: linear-gradient(135deg, #2c003e 0%, #000 100%);
+            border: 1px solid #8e44ad;
+            border-radius: 5px;
+            margin: 20px auto;
+            position: relative;
+            box-shadow: 0 0 30px rgba(142, 68, 173, 0.5);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* 签名区 */
+        #sig-canvas {
+            background: rgba(0,0,0,0.6);
+            border: 1px dashed #444;
+            margin-top: 20px;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .next-btn {
+            margin-top: 25px;
+            background: transparent;
+            border: 1px solid #8e44ad;
+            color: #8e44ad;
+            padding: 8px 25px;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        .next-btn:active { background: #8e44ad; color: #fff; }
+
+        .hint { position: absolute; bottom: 30px; font-size: 12px; color: #666; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="rain-overlay" id="rain"></div>
+
+    <div class="container" id="main-container">
+        <!-- P1: 抹开水雾 (基于设计内容) -->
+        <section class="page" style="background: #050505;">
+            <canvas id="canvas-fog"></canvas>
+            <div class="glass-card">
+                <h2>迷雾终局</h2>
+                <p>2026年的雨，比以往更冷一些。<br><br>在这个被烟雾锁住的城市里，<br>你听，那是谁在喘息？</p>
+            </div>
+            <div class="hint">擦拭屏幕抹开雾气，然后向上滑动</div>
+        </section>
+
+        <!-- P2: 被戳穿的诱惑 (基于设计内容) -->
+        <section class="page" style="background: linear-gradient(to bottom, #000, #1a0525);">
+            <div class="glass-card">
+                <h2 style="color: #bc8cf2;">戳穿“甜蜜”诱惑</h2>
+                <div class="vape-device"></div>
+                <p>2026年时事：WHO揭露烟草商通过“尼古丁盐”和高科技外壳对青少年的隐形操控。<br><br>美丽的外壳下，是致命的成瘾。</p>
+            </div>
+        </section>
+
+        <!-- P3: 原本内容 (保留原H5逻辑) -->
+        <section class="page" style="background: #0a0a0a;">
+            <div class="glass-card">
+                <h2>吸烟的即时危害</h2>
+                <p>心率加快、血压升高、一氧化碳降低血液携氧能力。<br><br>每一口烟，都在透支你的生命余额。</p>
+            </div>
+        </section>
+
+        <!-- P4: 原本内容 (保留原H5逻辑) -->
+        <section class="page" style="background: #0d0d0d;">
+            <div class="glass-card">
+                <h2>公共健康的防线</h2>
+                <p>二手烟不仅是气味，更是致命的细微颗粒物。<br><br>不吸烟，是给家人最基础的尊严与健康。</p>
+            </div>
+        </section>
+
+        <!-- P5: 2026终局与签名 (替换为设计稿P7+P8) -->
+        <section class="page" style="background: linear-gradient(to bottom, #1a0525, #000);">
+            <div class="glass-card">
+                <h2>2026 烟草终局行动</h2>
+                <p>加入“无烟世代”目标。<br>请在下方签名，告别死亡之舞。</p>
+                <canvas id="sig-canvas" width="280" height="120"></canvas>
+                <button class="next-btn" onclick="alert('承诺成功！愿你的呼吸，始终清爽。')">提交承诺</button>
+            </div>
+            <p style="margin-top: 20px; color: #555; font-style: italic;">愿你的呼吸，始终清爽。</p>
+        </section>
+    </div>
+
+    <script>
+        // 雨滴生成
+        const rainContainer = document.getElementById('rain');
+        for (let i = 0; i < 50; i++) {
+            const drop = document.createElement('div');
+            drop.className = 'drop';
+            drop.style.left = Math.random() * 100 + 'vw';
+            drop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+            drop.style.animationDelay = Math.random() * 2 + 's';
+            rainContainer.appendChild(drop);
+        }
+
+        // 翻页逻辑
+        let cur = 0;
+        let startY = 0;
+        const container = document.getElementById('main-container');
+
+        window.addEventListener('touchstart', e => startY = e.touches[0].clientY);
+        window.addEventListener('touchend', e => {
+            let endY = e.changedTouches[0].clientY;
+            if (startY - endY > 60 && cur < 4) cur++;
+            if (endY - startY > 60 && cur > 0) cur--;
+            container.style.transform = `translateY(-${cur * 100}vh)`;
+        });
+
+        // P1: 刮刮乐效果 (抹开水雾)
+        const fog = document.getElementById('canvas-fog');
+        const fctx = fog.getContext('2d');
+        fog.width = window.innerWidth;
+        fog.height = window.innerHeight;
+        fctx.fillStyle = '#222';
+        fctx.fillRect(0,0,fog.width,fog.height);
+        fctx.globalCompositeOperation = 'destination-out';
+
+        const drawFog = (e) => {
+            const t = e.touches ? e.touches[0] : e;
+            fctx.beginPath();
+            fctx.arc(t.clientX, t.clientY, 45, 0, Math.PI*2);
+            fctx.fill();
+        };
+        fog.addEventListener('touchmove', drawFog);
+        fog.addEventListener('mousemove', drawFog);
+
+        // P5: 签名逻辑
+        const sig = document.getElementById('sig-canvas');
+        const sctx = sig.getContext('2d');
+        let drawing = false;
+        sctx.strokeStyle = '#8e44ad';
+        sctx.lineWidth = 3;
+
+        const getPos = (e) => {
+            const r = sig.getBoundingClientRect();
+            const t = e.touches ? e.touches[0] : e;
+            return { x: t.clientX - r.left, y: t.clientY - r.top };
+        };
+
+        const startDraw = (e) => { drawing = true; sctx.beginPath(); const p = getPos(e); sctx.moveTo(p.x, p.y); };
+        const moveDraw = (e) => { if(!drawing) return; const p = getPos(e); sctx.lineTo(p.x, p.y); sctx.stroke(); };
+
+        sig.addEventListener('touchstart', startDraw);
+        sig.addEventListener('touchmove', moveDraw);
+        sig.addEventListener('touchend', () => drawing = false);
+        sig.addEventListener('mousedown', startDraw);
+        sig.addEventListener('mousemove', moveDraw);
+        window.addEventListener('mouseup', () => drawing = false);
+
+    </script>
+</body>
+</html>

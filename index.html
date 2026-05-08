@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>迷雾终局 - 深度互动版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; overflow: hidden; font-family: "PingFang SC", sans-serif; background: #000; color: #fff; }
+
+        .container { height: 100%; transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1); }
+        .page { height: 100vh; width: 100vw; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 25px; z-index: 2; width: 85%; text-align: center; }
+
+        /* P1 擦除迷雾 */
+        #canvas-fog { position: absolute; top: 0; left: 0; z-index: 10; touch-action: none; }
+        .enter-btn { display: none; position: absolute; bottom: 100px; z-index: 11; padding: 12px 30px; border: 2px solid #fff; background: rgba(0,0,0,0.5); color: #fff; border-radius: 30px; animation: pulse 1.5s infinite; }
+
+        /* P2 吹散诱惑 */
+        #vape-box { width: 150px; height: 150px; position: relative; margin: 20px; }
+        .purple-mist { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle, #8e44ad, transparent); border-radius: 50%; filter: blur(20px); transition: 0.5s; }
+        .vape-inner { width: 40px; height: 120px; background: #111; border: 1px solid #333; margin: 15px auto; border-radius: 5px; opacity: 0; transition: 1s; }
+
+        /* P3 肺部 */
+        .lung-container { position: relative; width: 180px; height: 180px; margin: 20px auto; }
+        .lung { position: absolute; width: 100%; height: 100%; border-radius: 40%; filter: blur(2px); }
+        .lung-healthy { background: radial-gradient(circle, #ff7e7e, #ff2e2e); }
+        .lung-sick { background: #000; opacity: 0; }
+        .slider { width: 100%; accent-color: #8e44ad; margin-top: 20px; }
+
+        /* P4 小票机 */
+        .receipt-machine { width: 200px; height: 40px; background: #333; border-radius: 5px 5px 0 0; position: relative; z-index: 5; }
+        .receipt-content { width: 180px; background: #eee; color: #000; padding: 0 10px; font-family: monospace; overflow: hidden; height: 0; transition: height 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .receipt-line { border-bottom: 1px dashed #999; padding: 5px 0; font-size: 12px; display: flex; justify-content: space-between; }
+        .print-btn { margin-top: 20px; padding: 10px; background: #8e44ad; border: none; color: #fff; border-radius: 5px; }
+
+        /* P5 签名区 */
+        #sig-canvas { background: rgba(255,255,255,0.1); border: 1px solid #444; border-radius: 10px; touch-action: none; }
+        .sig-btns { margin-top: 10px; display: flex; gap: 10px; }
+
+        /* 炸裂特效 */
+        #canvas-burst { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 100; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas-burst"></canvas>
+
+    <div class="container" id="main-container">
+        <!-- P1: 必须擦开迷雾 -->
+        <section class="page" style="background: #050505;">
+            <canvas id="canvas-fog"></canvas>
+            <div class="glass-card">
+                <h2>迷雾终局</h2>
+                <p>真相被掩盖在迷雾之下<br>请亲手抹去伪装...</p>
+            </div>
+            <button class="enter-btn" id="enterBtn" onclick="nextPage()">点击进入真相</button>
+        </section>
+
+        <!-- P2: 旋转互动剥离诱惑 -->
+        <section class="page" style="background: #0a0510;">
+            <div class="glass-card">
+                <h2>剥离“甜蜜”</h2>
+                <p>绕圈滑动屏幕，吹散诱惑的烟雾</p>
+                <div id="vape-box">
+                    <div class="purple-mist" id="mist"></div>
+                    <div class="vape-inner" id="vape"></div>
+                </div>
+                <div id="p2-desc" style="font-size: 12px; color: #8e44ad; opacity: 0;">2026警告：外壳之下，满是剧毒</div>
+            </div>
+        </section>
+
+        <!-- P3: 吸烟的代价 -->
+        <section class="page" style="background: #0d0d0d;">
+            <div class="glass-card">
+                <h2 style="color: #ff2e2e;">吸烟的代价</h2>
+                <div class="lung-container">
+                    <div class="lung lung-healthy"></div>
+                    <div class="lung lung-sick" id="lungSick"></div>
+                </div>
+                <input type="range" min="0" max="100" value="0" class="slider" id="lungSlider">
+                <p id="lungDesc" style="margin-top:15px; font-size: 13px;">拖动滑块：观察10年吸烟史的肺部演变</p>
+            </div>
+        </section>
+
+        <!-- P4: 小票机账单 -->
+        <section class="page" style="background: #000;">
+            <div class="glass-card">
+                <h2>生命透支清单</h2>
+                <div class="receipt-machine"></div>
+                <div class="receipt-content" id="receipt">
+                    <div class="receipt-line"><span>项目</span><span>金额</span></div>
+                </div>
+                <button class="print-btn" onclick="printReceipt()">点击打印账单</button>
+            </div>
+        </section>
+
+        <!-- P5: 签名区修复版 -->
+        <section class="page" style="background: #050505;">
+            <div class="glass-card">
+                <h2>无烟承诺</h2>
+                <p style="margin-bottom:10px">在此签下名字，余生不再复吸</p>
+                <canvas id="sig-canvas" width="280" height="150"></canvas>
+                <div class="sig-btns">
+                    <button onclick="clearSig()" style="padding:5px 15px; background:#444; border:none; color:#fff;">重写</button>
+                    <button onclick="alert('承诺已生效！')" style="padding:5px 15px; background:#8e44ad; border:none; color:#fff;">提交</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let cur = 0;
+        const container = document.getElementById('main-container');
+        function nextPage() { cur++; updatePage(); }
+        function updatePage() { container.style.transform = `translateY(-${cur * 100}vh)`; }
+
+        // P1: 擦除逻辑 + 面积检测
+        const fog = document.getElementById('canvas-fog');
+        const fctx = fog.getContext('2d');
+        fog.width = window.innerWidth; fog.height = window.innerHeight;
+        fctx.fillStyle = '#222'; fctx.fillRect(0,0,fog.width,fog.height);
+        fctx.globalCompositeOperation = 'destination-out';
+        
+        let erasedPixels = 0;
+        const scrub = (e) => {
+            const t = e.touches ? e.touches[0] : e;
+            fctx.beginPath(); fctx.arc(t.clientX, t.clientY, 50, 0, Math.PI*2); fctx.fill();
+            checkErased();
+        };
+        fog.addEventListener('touchmove', scrub);
+        
+        function checkErased() {
+            erasedPixels++;
+            if(erasedPixels > 100) document.getElementById('enterBtn').style.display = 'block';
+        }
+
+        // P2: 旋转互动
+        let mistScale = 1;
+        const mist = document.getElementById('mist');
+        const vape = document.getElementById('vape');
+        document.body.addEventListener('touchmove', (e) => {
+            if(cur === 1) {
+                mistScale -= 0.005;
+                if(mistScale < 0.2) { 
+                    mist.style.opacity = 0; 
+                    vape.style.opacity = 1; 
+                    document.getElementById('p2-desc').style.opacity = 1;
+                }
+                mist.style.transform = `scale(${Math.max(mistScale, 0)})`;
+            }
+        });
+
+        // P3: 肺部滑块
+        document.getElementById('lungSlider').addEventListener('input', (e) => {
+            const v = e.target.value;
+            document.getElementById('lungSick').style.opacity = v / 100;
+        });
+
+        // P4: 小票机
+        const receiptData = [
+            {n:"10年购烟款", v:"-12.8万"},
+            {n:"肺部清理费", v:"-35.0万"},
+            {n:"生命天数", v:"-2500天"},
+            {n:"健康状态", v:"清零"}
+        ];
+        let receiptIdx = 0;
+        function printReceipt() {
+            if(receiptIdx >= receiptData.length) return;
+            const res = document.getElementById('receipt');
+            const line = document.createElement('div');
+            line.className = 'receipt-line';
+            line.innerHTML = `<span>${receiptData[receiptIdx].n}</span><span>${receiptData[receiptIdx].v}</span>`;
+            res.appendChild(line);
+            res.style.height = (receiptIdx + 2) * 30 + 'px';
+            
+            if(receiptData[receiptIdx].n === "健康状态") {
+                setTimeout(doBurst, 500);
+            }
+            receiptIdx++;
+        }
+
+        // P5: 签名修复版
+        const sig = document.getElementById('sig-canvas');
+        const sctx = sig.getContext('2d');
+        sctx.strokeStyle = "#fff"; sctx.lineWidth = 3;
+        let drawing = false;
+
+        const getPos = (e) => {
+            const rect = sig.getBoundingClientRect();
+            const t = e.touches ? e.touches[0] : e;
+            return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+        };
+
+        sig.addEventListener('touchstart', (e) => { drawing = true; const p = getPos(e); sctx.beginPath(); sctx.moveTo(p.x, p.y); e.preventDefault(); });
+        sig.addEventListener('touchmove', (e) => { if(!drawing) return; const p = getPos(e); sctx.lineTo(p.x, p.y); sctx.stroke(); e.preventDefault(); });
+        sig.addEventListener('touchend', () => drawing = false);
+        function clearSig() { sctx.clearRect(0,0,sig.width,sig.height); }
+
+        // 炸裂特效
+        const bc = document.getElementById('canvas-burst');
+        const bctx = bc.getContext('2d');
+        bc.width = window.innerWidth; bc.height = window.innerHeight;
+        let ps = [];
+        function doBurst() {
+            for(let i=0; i<100; i++) ps.push({x:innerWidth/2, y:innerHeight/2, vx:Math.random()*20-10, vy:Math.random()*20-10, l:1});
+            animate();
+        }
+        function animate() {
+            bctx.clearRect(0,0,bc.width,bc.height);
+            ps.forEach((p,i) => {
+                p.x += p.vx; p.y += p.vy; p.l -= 0.02;
+                bctx.fillStyle = `rgba(255,46,46,${p.l})`;
+                bctx.fillRect(p.x,p.y,4,4);
+            });
+            ps = ps.filter(p => p.l > 0);
+            if(ps.length > 0) requestAnimationFrame(animate);
+        }
+    </script>
+</body>
+</html>
